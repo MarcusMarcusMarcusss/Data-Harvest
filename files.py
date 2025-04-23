@@ -50,10 +50,38 @@ def extract_external_url(page_url, headers):
 
     return external_links
 
+def extract_page_links(main_div, url):
+    found_urls = set()
+    for tag in main_div.find_all("a", href=True, class_="aalink stretched-link"):
+        if tag.find("span", class_="instancename") and not tag.find("span", class_="accesshide"):
+            href = tag["href"]
+            full_url = urljoin(url, href)
+            found_urls.add(full_url)
+    return found_urls
 
+def extract_links_from_page(page_url, headers):
+    response = requests.get(page_url, headers=headers)
+    if response.status_code != 200:
+        print(f"Failed to access the page: {page_url}")
+        return set()
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    page_links = set()
+
+    # Find the main section with role="main"
+    main_content = soup.find(attrs={"role": "main"})
+    if not main_content:
+        print("page content area not found.")
+        return set()
+
+    for tag in main_content.find_all("a", href=True):
+        href = tag["href"]
+        if "http://localhost/" not in href:
+            full_url = urljoin(page_url, href)
+            page_links.add(full_url)
+    return page_links
 
 def extract_plain_links(main_div, url):
-
     found_urls = set()
     for tag in main_div.find_all("a", href=True):
         if not tag.has_attr("role") and not tag.has_attr("class"):
@@ -61,6 +89,15 @@ def extract_plain_links(main_div, url):
             if "http://localhost/" not in href:
                 full_url = urljoin(url, tag["href"])
                 found_urls.add(full_url)
+    return found_urls
+
+def extract_blanktarget_links(main_div, url):
+    found_urls = set()
+    for tag in main_div.find_all("a", href=True):
+        if "_blanktarget" in tag.get("class", []) and not tag.has_attr("role"):
+            href = tag["href"]
+            full_url = urljoin(url, href)
+            found_urls.add(full_url)
     return found_urls
 
 def extract_forum_links(html, url):
@@ -130,14 +167,16 @@ def extract_folders(main_div, base_url):
     found_folders = []
     for tag in main_div.find_all("a", href=True):
         span = tag.find("span", class_="instancename")
-        if span and "Folder" in span.find("span", class_="accesshide").get_text(strip=True):
-            folder_url = tag.get("href")
-            folder_name = span.get_text(strip=True)
-            if len(folder_name) > 6:
-                folder_name = folder_name[:-6]  
-            if folder_url:
-                full_url = urljoin(base_url, folder_url) 
-                found_folders.append((folder_name, full_url)) 
+        if span:
+            accesshide_span = span.find("span", class_="accesshide")
+            if accesshide_span and "Folder" in accesshide_span.get_text(strip=True):
+                folder_url = tag.get("href")
+                folder_name = span.get_text(strip=True)
+                if len(folder_name) > 6:
+                    folder_name = folder_name[:-6]  # Remove " Folder" suffix
+                if folder_url:
+                    full_url = urljoin(base_url, folder_url)
+                    found_folders.append((folder_name, full_url))
     return found_folders
 
 
