@@ -1,88 +1,34 @@
+
 <!DOCTYPE html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Security Event Log</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 40px;
-        }
-        table {
-            margin: auto;
-            border-collapse: collapse;
-            width: 90%;
-            max-width: 900px;
-            margin-bottom: 40px;
-        }
-        th, td {
-            border: 1px solid #999;
-            padding: 10px;
-            text-align: center;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        h1 {
-            margin-bottom: 30px;
-        }
-        .circle {
-            display: inline-block;
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-        .low { background-color: green; }
-        .medium { background-color: rgb(100%, 60%, 0%); }
-        .high { background-color: red; }
-        .broken { background-color: grey; }
-
-        .legend {
-            margin-top: 40px;
-            text-align: left;
-            width: 60%;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .legend h3 {
-            margin-bottom: 10px;
-        }
-        .legend-item {
-            margin-bottom: 8px;
-        }
-
-        .copy-btn {
-            padding: 5px 10px;
-            font-size: 12px;
-            cursor: pointer;
-            background-color: #007BFF;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            margin-left: 10px;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <div class="header-container">
+        <h1>ICT302 Course Link Inspector</h1>
+        <button id="downloadBtn" class="title-download-btn" onclick="downloadPage()">Download</button>
+    </div>
+    
 </head>
 <body>
-    <h1>ICT377 Course Link Inspector</h1>
-
     <!-- Table for High, Medium, Broken -->
     <table>
         <thead>
             <tr>
                 <th>Timestamp</th>
-                <th>Security Level</th>
+                <th>Risk Level</th>
                 <th>Category</th>
                 <th>Link</th>
-                <th>From Page</th>
+                <th>From Source</th>
             </tr>
         </thead>
         <tbody>
             <tr>
                 <td>2025-04-20 10:33:00</td>
-                <td><span class="circle high"></td>
+                <td><span class="circle high"></span> High</td>
                 <td>Phishing</td>
                 <td>
                     <span id="link1">https://KEYtoTheHeart.men</span>
@@ -92,7 +38,7 @@
             </tr>
             <tr>
                 <td>2025-04-20 10:30:00</td>
-                <td><span class="circle medium"></td>
+                <td><span class="circle medium"></span> Medium</td>
                 <td>Expired SSL</td>
                 <td>
                     <span id="link2">https://www.telstra.com.eu</span>
@@ -102,8 +48,8 @@
             </tr>
             <tr>
                 <td>2025-04-20 10:39:00</td>
-                <td><span class="circle broken"></td>
-                <td>Dead Link</td>
+                <td><span class="circle broken"></span> Broken</td>
+                <td>Broken Link</td>
                 <td>
                     <span id="link4">https://www.404.org</span>
                     <button class="copy-btn" onclick="copyToClipboard('link4', this)">Copy</button>
@@ -118,8 +64,7 @@
         <thead>
             <tr>
                 <th>Timestamp</th>
-                <th>Security Level</th>
-                <th>Category</th>
+                <th>Risk Level	</th>
                 <th>Link</th>
                 <th>From Page</th>
             </tr>
@@ -127,8 +72,7 @@
         <tbody>
             <tr>
                 <td>2025-04-20 10:36:00</td>
-                <td><span class="circle low"></td>
-                <td>None</td>
+                <td><span class="circle low"></span> Low</td>
                 <td>
                     <span id="link3">https://www.EHhewihe.org</span>
                     <button class="copy-btn" onclick="copyToClipboard('link3', this)">Copy</button>
@@ -141,33 +85,24 @@
     <!-- Legend -->
     <div class="legend">
         <h3>Security Level Legend</h3>
-        <div class="legend-item"><span class="circle broken"></span> Broken Link (Grey) – Broken links | Recommended: Remove the link</div>
-        <div class="legend-item"><span class="circle low"></span> Low Risk (Green) – Minor concerns like harmful content | Recommended: Monitor periodically</div>
-        <div class="legend-item"><span class="circle medium"></span> Medium Risk (Amber) – Expired SSL Certificates | Recommended: Investigate</div>
-        <div class="legend-item"><span class="circle high"></span> High Risk (Red) – Phishing, malware, or unsecured links | Recommended: Immediate remediation</div>
+        <div class="legend-item-Grey">
+            <span class="circle broken"></span> 
+            Broken Link (Grey) – Link cannot be scanned (e.g., 404 errors).
+        </div>
+        <div class="legend-item-Green">
+            <span class="circle low"></span> 
+            Low Risk (Green) – No issues detected, safe resource.
+        </div>
+        <div class="legend-item-Amber">
+            <span class="circle medium"></span> 
+            Medium Risk (Amber) – Potential issues flagged (suspicious but not confirmed).
+        </div>
+        <div class="legend-item-Red">
+            <span class="circle high"></span> 
+            High Risk (Red) – Confirmed threats (phishing, malware, etc.).
+        </div>
     </div>
 
-    <script>
-        function copyToClipboard(id, button) {
-            const fullText = document.getElementById(id).textContent;
-            navigator.clipboard.writeText(fullText).then(() => {
-                const originalText = button.textContent;
-                button.textContent = "Copied";
-                setTimeout(() => {
-                    button.textContent = originalText;
-                }, 500);
-            });
-        }
-    
-        // Trim long link display
-        document.querySelectorAll("span[id^='link']").forEach(span => {
-            const full = span.textContent.trim();
-            const parts = full.split("/");
-            if (parts.length > 15) {
-                span.textContent = parts.slice(0, 15).join("/") + "...";
-            }
-        });
-    </script>
-    
+    <script src="function.js"></script>
 </body>
 </html>
