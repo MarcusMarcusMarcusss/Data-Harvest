@@ -3,11 +3,13 @@ include('function.php');
 $rows = getExtractedURLs();
 ?>
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
     <div class="header-container">
@@ -66,11 +68,12 @@ $rows = getExtractedURLs();
                 <th>Timestamp</th>
                 <th>Risk Level	</th>
                 <th>Link</th>
-                <th>From Page</th>
+                <th>From Source</th>
             </tr>
         </thead>
         <tbody>
         <?php
+            $rowIndex = 1;
             foreach ($rows as $r) {
                 $timestamp = $r['TimeStamp'];
                 $risk_level = 'Low'; // Assuming default risk level is Low
@@ -81,12 +84,13 @@ $rows = getExtractedURLs();
                 <td><?php echo $timestamp; ?></td>
                 <td><span class="circle <?php echo strtolower($risk_level); ?>"></span> <?php echo $risk_level; ?></td>
                 <td>
-                    <span id="link<?php echo $timestamp; ?>"><?php echo $link; ?></span>
-                    <button class="copy-btn" onclick="copyToClipboard('link<?php echo $timestamp; ?>', this)">Copy</button>
+                    <span id="link<?php echo $timestamp. ':' . $rowIndex; ?>"><?php echo $link; ?></span>
+                    <button class="copy-btn" onclick="copyToClipboard('link<?php echo $timestamp. ':' . $rowIndex; ?>', this)">Copy</button>
                 </td>
                 <td><?php echo $location; ?></td>
             </tr>
             <?php
+                $rowIndex++;
             }
             ?>
         </tbody>
