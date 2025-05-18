@@ -1,6 +1,7 @@
 <?php
 include('function.php');
 $rows = getExtractedURLs();
+$coordinator = getCoordinatorInfo(1);
 ?>
 <!DOCTYPE html>
 
@@ -16,15 +17,21 @@ $rows = getExtractedURLs();
         <h1>ICT302 Course Link Inspector</h1>
         <button id="downloadBtn" class="title-download-btn" onclick="downloadPage()">Download</button>
     </div>
+    <!-- Display Coordinator Information -->
+    <div class="coordinator-info">
+        <p><strong>Unit Coordinator: </strong><?php echo htmlspecialchars($coordinator['CoordinatorName']); ?></p>
+        <p><strong>Email: </strong><a href="mailto:<?php echo htmlspecialchars($coordinator['CoordinatorEmail']); ?>"><?php echo htmlspecialchars($coordinator['CoordinatorEmail']); ?></a></p>
+    </div>
     <!-- Table for High, Medium, Broken -->
+    <div class="UnitURL-info">
     <table>
         <thead>
             <tr>
-                <th>Timestamp</th>
-                <th>Risk Level</th>
-                <th>Category</th>
-                <th>Link</th>
-                <th>From Source</th>
+                <th class="sortable">Timestamp</th>
+                <th class="sortable">Risk Level</th>
+                <th class="sortable">Category</th>
+                <th class="sortable">Link</th>
+                <th class="sortable">From Source</th>
             </tr>
         </thead>
         <tbody>
@@ -65,10 +72,10 @@ $rows = getExtractedURLs();
     <table>
         <thead>
             <tr>
-                <th>Timestamp</th>
-                <th>Risk Level	</th>
-                <th>Link</th>
-                <th>From Source</th>
+                <th class="sortable">Timestamp</th>
+                <th class="sortable">Risk Level</th>
+                <th class="sortable">Link</th>
+                <th class="sortable">From Source</th>
             </tr>
         </thead>
         <tbody>
@@ -76,7 +83,7 @@ $rows = getExtractedURLs();
             $rowIndex = 1;
             foreach ($rows as $r) {
                 $timestamp = $r['TimeStamp'];
-                $risk_level = 'Low'; // Assuming default risk level is Low
+                $risk_level = 'Low';
                 $link = $r['URLString'];
                 $location = $r['Location'];
             ?>
@@ -95,6 +102,7 @@ $rows = getExtractedURLs();
             ?>
         </tbody>
     </table>
+    </div>
 
     <!-- Legend -->
     <div class="legend">

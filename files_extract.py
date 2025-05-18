@@ -2,6 +2,22 @@ import requests
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
+
+
+def extract_courses(soup):
+    course_data = []
+    course_headers = soup.find_all("h3", class_="coursename")
+
+    for header in course_headers:
+        link = header.find("a", class_="aalink")
+        if link:
+            course_url = link.get("href")
+            course_name = link.string.strip() if link.string else link.get_text(strip=True)
+            course_data.append((course_name, course_url))
+
+    return course_data
+
+
 def extract_files(main_div, url):
     file_links = []
 
@@ -51,13 +67,22 @@ def extract_external_url(page_url, headers):
     return external_links
 
 def extract_page_links(main_div, url):
-    found_urls = set()
-    for tag in main_div.find_all("a", href=True, class_="aalink stretched-link"):
-        if tag.find("span", class_="instancename") and not tag.find("span", class_="accesshide"):
-            href = tag["href"]
-            full_url = urljoin(url, href)
-            found_urls.add(full_url)
-    return found_urls
+    found_pages = []
+
+    # Find all <a> tags that contain both 'aalink' and 'stretched-link' in their class list
+    for tag in main_div.find_all("a", href=True):
+        classes = tag.get("class", [])
+        if "aalink" in classes and "stretched-link" in classes:
+            name_span = tag.find("span", class_="instancename")
+            accesshide = tag.find("span", class_="accesshide")
+
+            if name_span and not accesshide:
+                href = tag["href"]
+                full_url = urljoin(url, href)
+                page_title = name_span.get_text(strip=True)
+                found_pages.append((full_url, page_title))
+
+    return found_pages
 
 def extract_links_from_page(page_url, headers):
     response = requests.get(page_url, headers=headers)
@@ -84,6 +109,8 @@ def extract_links_from_page(page_url, headers):
 def extract_plain_links(main_div, url):
     found_urls = set()
     for tag in main_div.find_all("a", href=True):
+        if tag.find_parent("footer", id="page-footer"):
+            continue
         if not tag.has_attr("role") and not tag.has_attr("class"):
             href = tag["href"]
             if "http://localhost/" not in href:
@@ -103,16 +130,10 @@ def extract_blanktarget_links(main_div, url):
 def extract_forum_links(html, url):
     soup = BeautifulSoup(html, "html.parser")
     forum_links = []
-
-    # Find all links that may lead to a forum (by checking for the accesshide Forum span)
     for link in soup.find_all("a", class_="aalink stretched-link"):
-        # Check if the span with class 'accesshide' contains the word 'Forum'
         span = link.find("span", class_="accesshide")
         if span and "Forum" in span.get_text(strip=True):
-            # It's a forum, extract and return the link and the forum name
             forum_name_tag = link.find("span", class_="instancename")
-            
-            # Ensure we are only getting the first 'instancename' text
             if forum_name_tag:
                 forum_name = forum_name_tag.get_text(strip=True)
                 if forum_name.lower().endswith("forum"):
@@ -163,7 +184,7 @@ def extract_links_from_discussion(discussion_url, headers):
 
     return post_links
 
-def extract_folders(main_div, base_url):
+def extract_folder_resources(main_div, url):
     found_folders = []
     for tag in main_div.find_all("a", href=True):
         span = tag.find("span", class_="instancename")
@@ -173,9 +194,9 @@ def extract_folders(main_div, base_url):
                 folder_url = tag.get("href")
                 folder_name = span.get_text(strip=True)
                 if len(folder_name) > 6:
-                    folder_name = folder_name[:-6]  # Remove " Folder" suffix
+                    folder_name = folder_name[:-6]
                 if folder_url:
-                    full_url = urljoin(base_url, folder_url)
+                    full_url = urljoin(url, folder_url)
                     found_folders.append((folder_name, full_url))
     return found_folders
 

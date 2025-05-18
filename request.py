@@ -58,10 +58,10 @@ def file_exists_and_same_size(file_path, response):
         existing_size = os.path.getsize(file_path)
         remote_size = int(response.headers.get('Content-Length', 0))
         if existing_size == remote_size:
-            print(f"The file {os.path.basename(file_path)} already exists with the same size. Skipping download.")
+            print(f"The file {os.path.basename(file_path)} already exists with same size.Skip download.")
             return True
         else:
-            print(f"The file {os.path.basename(file_path)} exists but with a different size. Downloading again.")
+            print(f"The file {os.path.basename(file_path)} exists but different sizes.Downloading again.")
             return False
     return False
 
