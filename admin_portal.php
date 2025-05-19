@@ -1,8 +1,40 @@
-
 <?php
+session_start();
 include('function.php');
-$rows = getExtractedURLs();
-$coordinator = getCoordinatorInfo(1);
+
+$totalUnits = 0;
+$courses = [];
+$coordinators = [];
+
+if (empty($_SESSION['logged_in'])) {
+    header('Location: login_page.php');
+    exit;
+}
+  try {
+      $db = new PDO('sqlite:unit_inspector.db');
+      $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+      $db->exec('PRAGMA foreign_keys = ON');
+  } catch (PDOException $e) {
+      die('Database error: ' . $e->getMessage());
+  }
+
+  $user_id = $_SESSION['user_id'];
+  $savedSchedule = getUserSchedule($user_id, $db);
+  $scheduleCourses = $savedSchedule['courses'] ?? [];
+  $scheduleDays = $savedSchedule['days'] ?? [];
+  $scheduleTime = $savedSchedule['time'] ?? '';
+
+  $daysString = !empty($scheduleDays) ? implode(', ', $scheduleDays) : 'No days scheduled';
+  $timeString = !empty($scheduleTime) ? date('g:i A', strtotime($scheduleTime)) : 'No time set';
+  $upcomingScanText = "$daysString, $timeString";
+  
+
+  $totalUnits = getTotalCourses();
+  $courses    = getCourses();
+  $coordinators = getCoordinators();
+  $coordinatorCourseMap = getCoordinatorCourseMap();
+
+
 ?>
 
 <!DOCTYPE html>
@@ -12,32 +44,26 @@ $coordinator = getCoordinatorInfo(1);
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Unit Inspector</title>
   <link rel="stylesheet" href="style.css" />
+  <script>
+    const savedSchedule = <?php echo json_encode($savedSchedule ?? ['courses'=>[], 'days'=>[], 'time'=>'02:00']); ?>;
+  </script>
 </head>
 <body>
   <div class="page-container">
     <div class="side-panel">
       <h2>Admin Panel</h2>
       <ul>
-        <li><a href="#" class="nav-link" id="dashboard-link" disabled>Dashboard</a></li>
-        <li><a href="#" class="nav-link" id="unit-manager-link" disabled>Unit Manager</a></li>
-        <li><a href="#" class="nav-link" id="scan-schedule-link" disabled>Scan Schedule</a></li>
+        <li><a href="#" class="nav-link enabled" id="dashboard-link">Dashboard</a></li>
+        <li><a href="#" class="nav-link enabled" id="unit-manager-link">Unit Manager</a></li>
+        <li><a href="#" class="nav-link enabled" id="scan-schedule-link">Scan Schedule</a></li>
       </ul>
     </div>
 
     <div class="main-content">
-      <div id="login-section">
-        <h2>Welcome to Unit Inspector</h2>
-        <p>Please login to access the admin portal</p>
-        <input type="text" id="username" placeholder="Username" />
-        <input type="password" id="password" placeholder="Password" />
-        <button onclick="validateLogin()">Login</button>
-        <p id="login-msg" style="color: red;"></p>
-      </div>
 
+      <div id="admin-section" style="display: block;">
 
-      <div id="admin-section" style="display: none;">
-
-        <div id="dashboard-section" style="display: none;">
+        <div id="dashboard-section" style="display:block;">
           <div class="header-container">
             <h1>Unit Inspector - Dashboard</h1>
           </div>
@@ -45,22 +71,35 @@ $coordinator = getCoordinatorInfo(1);
           <div class="dashboard-container">
             <div class="dashboard-box">
               <h3>Total Units</h3>
-              <p>5</p>
+              <p><?= htmlspecialchars($totalUnits) ?></p>
             </div>
 
             <div class="dashboard-box">
               <h3>Courses Managed</h3>
-              <p>ICT302, ICT303, ICT392, Help Tool, TestCourse1</p>
+              <?php
+                if (!empty($courses)) {
+                    echo htmlspecialchars(implode(', ', $courses));
+                } else {
+                    echo 'No courses found.';
+                }
+                ?>
+              </p>
             </div>
 
             <div class="dashboard-box">
               <h3>Upcoming Scan</h3>
-              <p>Monday, 8:00 AM</p>
+              <p><?= htmlspecialchars($upcomingScanText) ?></p>
             </div>
 
             <div class="dashboard-box">
-              <h3>Unit Coordinators</h3>
-              <p>Dr. Mark, Prof. Mord, Ms. Jane</p>
+              <h3>Unit Coordinator</h3>
+               <?php
+                if (!empty($coordinators)) {
+                    echo htmlspecialchars(implode(', ', $coordinators));
+                } else {
+                    echo 'No coordinators found.';
+                }
+                ?>
             </div>
           </div>
         </div>
@@ -74,38 +113,33 @@ $coordinator = getCoordinatorInfo(1);
             <div class="selector-box">
               <div class="available-courses-text">Available Course</div>
               <div class="checkbox-container">
-                <label><input type="checkbox" class="course-checkbox" value="ICT302" /> ICT302</label>
-                <label><input type="checkbox" class="course-checkbox" value="ICT303" /> ICT303</label>
-                <label><input type="checkbox" class="course-checkbox" value="ICT392" /> ICT392</label>
-                <label><input type="checkbox" class="course-checkbox" value="Help Tool" /> Help Tool</label>
-                <label><input type="checkbox" class="course-checkbox" value="TestCourse1" /> TestCourse1</label>
+                <?php if (!empty($courses)): ?>
+                  <?php foreach ($courses as $course): ?>
+                    <label><input type="checkbox" class="course-checkbox" value="<?= htmlspecialchars($course) ?>" /> <?= htmlspecialchars($course) ?></label>
+                  <?php endforeach; ?>
+                <?php else: ?>
+                  <p>No courses available.</p>
+                <?php endif; ?>
               </div>
             </div>
 
             <div class="selector-box">
               <div class="available-courses-text">Unit Coordinator</div>
               <div class="checkbox-container">
-                <label><input type="checkbox" class="unit_coordinator-checkbox" value="Dr. Mark" /> Dr. Mark</label>
-                <label><input type="checkbox" class="unit_coordinator-checkbox" value="Prof. Mord" /> Prof. Mord</label>
-                <label><input type="checkbox" class="unit_coordinator-checkbox" value="Ms. Jane" /> Ms. Jane</label>
+                <?php if (!empty($coordinators)): ?>
+                  <?php foreach ($coordinators as $coordinator): ?>
+                    <label><input type="checkbox" class="unit_coordinator-checkbox" value="<?= htmlspecialchars($coordinator) ?>" /> <?= htmlspecialchars($coordinator) ?></label>
+                  <?php endforeach; ?>
+                <?php else: ?>
+                  <p>No coordinators available.</p>
+                <?php endif; ?>
               </div>
             </div>
           </div>
-
-          <div id="scan-options-container" style="margin-top: 20px;">
-          <h3>Scan Sections:</h3>
-          <div class="checkbox-container">
-            <label><input type="checkbox" class="unit_scan-option" value="Main Page"> Main Page</label>
-            <label><input type="checkbox" class="unit_scan-option" value="Files"> Files</label>
-            <label><input type="checkbox" class="unit_scan-option" value="Discussion Forums"> Discussion Forums</label>
-            <label><input type="checkbox" class="unit_scan-option" value="Activities"> Activities</label>
-            <label><input type="checkbox" class="unit_scan-option" value="Quiz"> Quiz</label>
-          </div>
-
-        </div>
           <div class="header-container">
             <button class="Scan-btn">Scan</button>
           </div>
+        </div>
         </div>
 
         <!-- Scan Schedule Section -->
@@ -117,20 +151,26 @@ $coordinator = getCoordinatorInfo(1);
             <div class="selector-box">
               <div class="available-courses-text">Available Course</div>
               <div class="checkbox-container">
-                <label><input type="checkbox" class="course-checkbox" value="ICT302" /> ICT302</label>
-                <label><input type="checkbox" class="course-checkbox" value="ICT303" /> ICT303</label>
-                <label><input type="checkbox" class="course-checkbox" value="ICT392" /> ICT392</label>
-                <label><input type="checkbox" class="course-checkbox" value="Help Tool" /> Help Tool</label>
-                <label><input type="checkbox" class="course-checkbox" value="TestCourse1" /> TestCourse1</label>
+                <?php if (!empty($courses)): ?>
+                  <?php foreach ($courses as $course): ?>
+                    <label><input type="checkbox" class="course-checkbox" value="<?= htmlspecialchars($course) ?>" /> <?= htmlspecialchars($course) ?></label>
+                  <?php endforeach; ?>
+                <?php else: ?>
+                  <p>No courses available.</p>
+                <?php endif; ?>
               </div>
             </div>
 
             <div class="selector-box">
               <div class="available-courses-text">Unit Coordinator</div>
               <div class="checkbox-container">
-                <label><input type="checkbox" class="coordinator-checkbox" value="Dr. Mark" /> Dr. Mark</label>
-                <label><input type="checkbox" class="coordinator-checkbox" value="Prof. Mord" /> Prof. Mord</label>
-                <label><input type="checkbox" class="coordinator-checkbox" value="Ms. Jane" /> Ms. Jane</label>
+                <?php if (!empty($coordinators)): ?>
+                  <?php foreach ($coordinators as $coordinator): ?>
+                    <label><input type="checkbox" class="unit_coordinator-checkbox" value="<?= htmlspecialchars($coordinator) ?>" /> <?= htmlspecialchars($coordinator) ?></label>
+                  <?php endforeach; ?>
+                <?php else: ?>
+                  <p>No coordinators available.</p>
+                <?php endif; ?>
               </div>
             </div>
           </div>
@@ -168,7 +208,7 @@ $coordinator = getCoordinatorInfo(1);
             </div>
           </div>
           <div class="header-container">
-            <button class="title-download-btn">Save</button>
+            <button class="Schedule-Save-btn">Save</button>
           </div>
         </div>
       </div>
@@ -176,26 +216,6 @@ $coordinator = getCoordinatorInfo(1);
   </div>
 
   <script>
-    function validateLogin() {
-      const user = document.getElementById("username").value;
-      const pass = document.getElementById("password").value;
-      if (user === "admin" && pass === "123456") {
-        document.getElementById("login-section").style.display = "none";
-        document.getElementById("admin-section").style.display = "block";
-        document.getElementById("dashboard-section").style.display = "block";
-
-        document.getElementById("unit-manager-section").style.display = "none";
-        document.getElementById("scan-schedule-section").style.display = "none";
-
-        document.querySelectorAll('.nav-link').forEach(link => {
-          link.removeAttribute('disabled');
-          link.style.pointerEvents = "auto";
-          link.style.opacity = "1";
-        });
-      } else {
-        document.getElementById("login-msg").textContent = "Invalid credentials.";
-      }
-    }
 
     document.getElementById('dashboard-link').addEventListener('click', function () {
       document.getElementById('dashboard-section').style.display = 'block';
@@ -215,25 +235,91 @@ $coordinator = getCoordinatorInfo(1);
       document.getElementById('dashboard-section').style.display = 'none';
     });
 
-    document.addEventListener("DOMContentLoaded", function () {
-      const coordinatorToCourses = {
-        "Dr. Mark": ["ICT302", "ICT303"],
-        "Prof. Mord": ["ICT392"],
-        "Ms. Jane": ["Help Tool", "TestCourse1"]
-      };
-
-      document.querySelectorAll('.coordinator-checkbox').forEach(coordinator => {
-        coordinator.addEventListener('change', function () {
-          const units = coordinatorToCourses[this.value] || [];
-          units.forEach(unitCode => {
-            const courseCheckbox = document.querySelector(`.course-checkbox[value="${unitCode}"]`);
-            if (courseCheckbox) {
-              courseCheckbox.checked = this.checked;
-            }
+    const coordinatorCourseMap = <?php echo json_encode($coordinatorCourseMap); ?>;
+      document.querySelectorAll('.unit_coordinator-checkbox').forEach(cb => {
+        cb.addEventListener('change', function () {
+          (coordinatorCourseMap[this.value] || []).forEach(code => {
+            const target = this
+              .closest('.dual-container')
+              .querySelector(`input.course-checkbox[value="${code}"]`);
+            if (target) target.checked = this.checked;
           });
         });
       });
+
+      document.querySelector('.Scan-btn').addEventListener('click', function() {
+    const checkedCourses = Array.from(document.querySelectorAll('.course-checkbox:checked'))
+      .map(checkbox => checkbox.value);
+
+      if (checkedCourses.length === 0) {
+      alert('Please select at least one course to scan.');
+      return; 
+    }
+
+  });
+
+
+  document.querySelector('.Schedule-Save-btn').addEventListener('click', () => {
+    const courses = [...document.querySelectorAll('#scan-schedule-section .course-checkbox:checked')].map(c => c.value);
+    const days = [...document.querySelectorAll('#scan-schedule-section .day-selector input:checked')].map(d => d.value);
+    const scanTime = document.getElementById('scan-time').value;
+
+    if (courses.length === 0) {
+      alert('Please select at least one course to schedule.');
+      return;
+    }
+    if (days.length === 0) {
+      alert('Please pick at least one day for the automated scan.');
+      return;
+    }
+
+    // Prepare data to send
+    const data = {
+      courses: courses,
+      days: days,
+      time: scanTime
+    };
+
+    fetch('save_schedule.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+      if(result.success) {
+        alert('Schedule saved successfully.');
+      } else {
+        alert('Failed to save schedule: ' + (result.error || 'Unknown error'));
+      }
+    })
+    .catch(error => {
+      alert('Error saving schedule: ' + error.message);
     });
+  });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    savedSchedule.courses.forEach(course => {
+      const checkbox = document.querySelector(`#scan-schedule-section .course-checkbox[value="${course}"]`);
+      if (checkbox) checkbox.checked = true;
+    });
+
+    savedSchedule.days.forEach(day => {
+      const dayCheckbox = document.querySelector(`#scan-schedule-section .day-selector input[value="${day}"]`);
+      if (dayCheckbox) dayCheckbox.checked = true;
+    });
+
+    const timeSelect = document.querySelector('#scan-schedule-section #scan-time');
+    if (timeSelect) {
+      timeSelect.value = savedSchedule.time;
+    }
+  });
+
+  
+
+
   </script>
 </body>
 </html>
