@@ -94,11 +94,10 @@
             <label><input type="checkbox" class="unit_scan-option" value="Activities"> Activities</label>
             <label><input type="checkbox" class="unit_scan-option" value="Quiz"> Quiz</label>
           </div>
-
-        </div>
           <div class="header-container">
             <button class="Scan-btn">Scan</button>
           </div>
+        </div>
         </div>
 
         <!-- Scan Schedule Section -->
@@ -208,24 +207,20 @@
       document.getElementById('dashboard-section').style.display = 'none';
     });
 
-    document.addEventListener("DOMContentLoaded", function () {
-      const coordinatorToCourses = {
-        "Dr. Mark": ["ICT302", "ICT303"],
+    document.querySelectorAll('.coordinator-checkbox').forEach(cb => {
+    cb.addEventListener('change', function () {
+        const map = {
+        "Dr. Mark": ["ICT302","ICT303"],
         "Prof. Mord": ["ICT392"],
-        "Ms. Jane": ["Help Tool", "TestCourse1"]
-      };
-
-      document.querySelectorAll('.coordinator-checkbox').forEach(coordinator => {
-        coordinator.addEventListener('change', function () {
-          const units = coordinatorToCourses[this.value] || [];
-          units.forEach(unitCode => {
-            const courseCheckbox = document.querySelector(`.course-checkbox[value="${unitCode}"]`);
-            if (courseCheckbox) {
-              courseCheckbox.checked = this.checked;
-            }
-          });
+        "Ms. Jane": ["Help Tool","TestCourse1"]
+        };
+        (map[this.value] || []).forEach(code => {
+        const target = this
+            .closest('.dual-container')
+            .querySelector(`input[value="${code}"]`);
+        if (target) target.checked = this.checked;
         });
-      });
+    });
     });
   </script>
 </body>

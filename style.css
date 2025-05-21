@@ -189,16 +189,18 @@ h1 {
     height: 100vh;
   }
 
-  .side-panel {
-    width: 220px;
-    height: 100vh;
-    background-color: hsl(109, 56%, 26%);
-    color: white;
-    padding: 20px;
-    box-sizing: border-box;
-    flex-shrink: 0;
-    height: 100vh;
-  }
+.side-panel{
+  position:fixed;
+  left:0;
+  top:0;
+  width:220px;
+  height:100vh;
+  flex:0 0 220px;
+  background-color:hsl(109,56%,26%);
+  color:#fff;
+  padding:20px;
+  box-sizing:border-box;
+}
   
   .side-panel h2 {
     margin-top: 0;
@@ -227,6 +229,7 @@ h1 {
     }
   
   .main-content {
+    margin-left:220px;
     flex-grow: 1;
     padding: 30px;
     overflow-y: auto;
@@ -246,4 +249,22 @@ h1 {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+  }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  display: flex;
+  justify-content: center; /* centers horizontally */
+  align-items: center;     /* centers vertically */
+  background-color: #f0f2f5; /* optional background */
+}
+  .login-container {
+      background: white;
+      padding: 30px 40px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 300px;
+      text-align: center;
   }

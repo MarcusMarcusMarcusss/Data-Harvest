@@ -17,8 +17,9 @@ if PARENT_DIR not in sys.path:
 
 
 try:
+
     from LMS_SCRAPER.files import (
-        extract_all_external_links, extract_potential_file_links,
+        extract_all_external_links, extract_potential_file_links,extract_courses,
         extract_url_type_links, extract_page_links, extract_forum_links,
         extract_file_links, extract_external_url, extract_links_from_page,
         extract_forum_discussions, extract_links_from_discussion
@@ -111,10 +112,40 @@ def get_or_create_content_item(cursor, cache, item_name, item_type, item_path, u
         return None
 
 
-def insert_extracted_url(cursor, item_id, url_string, location): #function to insert record into ExtractedURL table after normalizing the URL
 
+def insert_unit_info(cursor,coordinator_id,unit_name,school_name):
+    #function to insert record into unit table
+    conn = cursor.connection
+    try:
+        cursor.execute("SELECT 1 FROM Unit WHERE UnitName = ?", (unit_name,))
+        existing_url = cursor.fetchone()
+        if existing_url:
+            return
+        cursor.execute("""
+            INSERT INTO Unit (CoordinatorID, UnitName, SchoolName)
+            VALUES (?, ?, ?)
+        """, (coordinator_id, unit_name, school_name))
+        conn.commit()
+
+    except sqlite3.Error as e:
+        print(f"DB Error: failed inserting Unit for unit name {unit_name}: {e}")
+        conn.rollback()
+
+def get_unit_id_by_name(cursor,unit_name):
+    conn = cursor.connection
+    try:
+        cursor.execute("SELECT UnitID FROM Unit WHERE UnitName = ?", (unit_name,))
+        result = cursor.fetchone()
+        return result[0] if result else None
+    except sqlite3.Error as e:
+        print(f"DB Error: failed fetching UnitID for '{unit_name}': {e}")
+        return None
+
+def insert_extracted_url(cursor, item_id, url_string, location):
+ #function to insert record into ExtractedURL table after normalizing the URL
     conn = cursor.connection
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
     normalized_url = normalize_url_for_db(url_string)
     if not normalized_url:
         return
@@ -168,7 +199,6 @@ def initialize_script(db_name, download_dir, course_url, headers):
         print(f"CRITICAL ERROR: Could not connect to database '{db_path}': {e}")
         return None
     course_download_dir = download_dir
-    base_download_dir_for_reports = download_dir
     course_name_part = "unknown_course"
     try:
         parent_dir = os.path.dirname(LMS_SCRAPER_DIR)
@@ -194,7 +224,48 @@ def initialize_script(db_name, download_dir, course_url, headers):
     return data
 
 
-def scrape_course_content(data, base_url, course_url, request_delay, request_timeout, default_unit_id):
+
+
+def scrape_avaliable_course(data, avaliable_course_URL, request_delay, request_timeout):
+    # add/create the unit column and add to rows
+    # return the unit id and unit name
+
+    session = data["session"]
+    db_cursor = data["db_cursor"]
+    moodle_item_cache = data["moodle_item_cache"]
+    scraped_units = []
+    try:
+            time.sleep(request_delay / 2)
+            course_page_res = session.get(avaliable_course_URL, timeout=request_timeout)
+            course_page_res.raise_for_status()
+            if 'text/html' not in course_page_res.headers.get('Content-Type', ''):
+                print(f"Error: Course page ({avaliable_course_URL}) did not return HTML content.")
+                return False
+            course_soup = BeautifulSoup(course_page_res.text, "html.parser")
+            main_div = course_soup.find(attrs={"role": "main"}) or course_soup.find("div", id="region-main") or course_soup.body
+            if not main_div:
+                print("Error: Could not find main content area or body. Exiting.")
+                return False
+            Course_extract = extract_courses(main_div)
+            for name, url in Course_extract:
+                insert_unit_info(db_cursor,1, name,"School of IT")
+                unitid=get_unit_id_by_name(db_cursor,name)
+                file_item_id = get_or_create_content_item(
+                db_cursor, moodle_item_cache, name,  'Course Page: '+name, url,unitid)
+                scraped_units.append({
+                    "unit_name": "Found Course: "+name,
+                })
+            return scraped_units
+    except Exception as e:
+        print(f"\nAn error occurred during avaliable course scraping: {e}")
+        traceback.print_exc()
+        return False
+
+
+
+
+def scrape_course_content(data, base_url, course_url, request_delay, request_timeout, default_unit_id,Content_item_ID):
+    # helpers, caches, and state
     session = data["session"]
     db_cursor = data["db_cursor"]
     moodle_item_cache = data["moodle_item_cache"]
@@ -202,28 +273,37 @@ def scrape_course_content(data, base_url, course_url, request_delay, request_tim
     processed_resource_urls = data["processed_resource_urls"]
 
     try:
+        # fetch the course page
         time.sleep(request_delay / 2)
         course_page_res = session.get(course_url, timeout=request_timeout)
         course_page_res.raise_for_status()
         if 'text/html' not in course_page_res.headers.get('Content-Type', ''):
             print(f"Error: Course page ({course_url}) did not return HTML content.")
             return False
+        
+        # parse HTML and locate the main content container
         course_soup = BeautifulSoup(course_page_res.text, "html.parser")
-        main_div = course_soup.find(attrs={"role": "main"}) or course_soup.find("div",
-                                                                                id="region-main") or course_soup.body
+        main_div = course_soup.find(attrs={"role": "main"}) or course_soup.find("div", id="region-main") or course_soup.body
         if not main_div:
             print("Error: Could not find main content area or body. Exiting.")
             return False
+        # course URL
         processed_resource_urls.add(course_url)
         processed_resource_urls.add(course_page_res.url)
         main_page_source_desc = f"Main Course Page ({course_page_res.url})"
-        main_page_item_id = None
+
+        # external links found directly on the course page
         direct_external_links = extract_all_external_links(main_div, course_page_res.url, main_page_source_desc)
+        for link, _ in direct_external_links.items():
+            insert_extracted_url(db_cursor, Content_item_ID, link, course_page_res.url)
+
+        # file links directly visible on the course page
         direct_file_links = extract_potential_file_links(main_div, course_page_res.url, main_page_source_desc)
         for link, _ in direct_file_links.items():
             if link not in potential_files_to_process:
                 potential_files_to_process[link] = {'source_item_id': None, 'file_item_name': 'Unknown File',
                                                     'file_item_type': 'File'}
+        # lists of all resources
         url_resources = extract_url_type_links(main_div, base_url)
         page_resource_links = extract_page_links(main_div, base_url)
         forum_resource_links = extract_forum_links(main_div, base_url)
@@ -411,7 +491,7 @@ def process_downloaded_content(data, processed_files_data):
     print(f"  Documents Failed/Skipped: {docs_failed_count}")
 
 
-def check_url(data):
+def check_url(data,unit_id):
 
     #Queries database for ALL URLs, checks them via VirusTotal, gets domain registration date,
     #and UPSERTS results into AnalysisReport table.
@@ -423,7 +503,13 @@ def check_url(data):
     print("\nStarting URL Analysis (VirusTotal & Domain Age)")
     urls_to_check = []
     try:
-        db_cursor.execute("SELECT URLID, URLString FROM ExtractedURL")
+        query = """
+            SELECT e.URLID, e.URLString
+            FROM ExtractedURL e
+            JOIN ContentItem c ON e.ItemID = c.ItemID
+            WHERE c.UnitID = ?
+        """
+        db_cursor.execute(query, (unit_id,))
         urls_to_check = db_cursor.fetchall()
     except sqlite3.Error as e:
         print(f"DB Error querying URLs: {e}")
@@ -529,3 +615,36 @@ def delete_processed_files(processed_files_data): #delets files after processing
                 os.remove(local_path)
             except Exception:
                 pass
+
+def get_CoursePage_Urls(db_path, unit_name): 
+    query = """
+        SELECT 
+            u.UnitID,
+            u.CoordinatorID,
+            c.ItemID,
+            c.ItemPath
+        FROM 
+            Unit u
+        JOIN 
+            ContentItem c ON u.UnitID = c.UnitID
+        WHERE 
+            u.UnitName = ?
+            AND c.ItemName = ?
+            AND c.ItemType = ?;
+    """
+
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        cursor.execute(query, (unit_name, unit_name, f"Course Page: {unit_name}"))
+        results = cursor.fetchall()
+        return results
+
+    except sqlite3.Error as e:
+        print(f"CRITICAL ERROR: Could not connect to database '{db_path}': {e}")
+        return []
+
+    finally:
+        if conn:
+            conn.close()

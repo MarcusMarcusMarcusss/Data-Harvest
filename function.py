@@ -14,7 +14,7 @@ def process_courses(course_html, headers):
         print("Course div not found.")
         return []
 
-    course_info = extract_courses(soup)
+    course_info = extract_courses(main_div)
     course_entries = []
     for course_name, course_url in course_info:
         unit_entry = UnitInfoEntry(

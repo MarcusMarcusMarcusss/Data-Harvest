@@ -9,8 +9,8 @@ import hashlib
 
 def clean_filename(filename):
 
-    #Cleans a filename string to be safe for filesystem use across OSes.
-    #Removes potentially problematic characters and limits length.
+    # Cleans a filename string to be safe for filesystem use across OSes.
+    # Removes potentially problematic characters and limits length.
 
     if not isinstance(filename, str):
         filename = str(filename) # Ensure it's a string
