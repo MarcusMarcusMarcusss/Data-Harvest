@@ -54,7 +54,7 @@ if (!empty($_SESSION['logged_in'])) {
 <title>Unit Inspector Login Page</title>
 <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="login-page-background">
   <div class="login-section" id="login-section">
     <h2>Welcome to Unit Inspector</h2>
     <p>Please login to access the admin portal<p>
