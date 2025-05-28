@@ -234,7 +234,7 @@ h1 {
     padding: 30px;
     overflow-y: auto;
   }
-body::before {
+.login-page-background::before {
     content: "";
     position: fixed;
     top: 0;
