@@ -14,18 +14,6 @@ $db_error = null;
 // Embed path_php array
 $path_php = array(
         [
-            'course_id' => '3',
-            'course_name' => 'ICT302',
-            'report_url' => 'http://localhost:3000/LMS_SCRAPER/course_inspector_ICT302.php'
-        ]
-        ,
-        [
-            'course_id' => '2',
-            'course_name' => 'ICT303',
-            'report_url' => 'http://localhost:3000/LMS_SCRAPER/course_inspector_ICT303.php'
-        ]
-        ,
-        [
             'course_id' => '4',
             'course_name' => 'ICT392',
             'report_url' => 'http://localhost:3000/LMS_SCRAPER/course_inspector_ICT392.php'
@@ -122,3 +110,6 @@ try {
     <?php endif; ?>
 </body>
 </html>
+<script>
+document.getElementById('download-btn').addEventListener('click', downloadPage);
+</script>

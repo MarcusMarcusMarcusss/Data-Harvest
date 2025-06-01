@@ -47,7 +47,6 @@ def extract_courses(soup_or_tag):
     if not soup_or_tag: 
         return courses
     try:
-        # grab every course header block
         for h3 in soup_or_tag.find_all("h3", class_="coursename"):
             link = h3.find("a", class_="aalink", href=True)
             if not link:

@@ -67,8 +67,8 @@ function getRiskClass($risk_level) {
     $level = strtolower($risk_level ?? '');
     if ($level === 'red') {
         return 'risk-red';
-    } elseif ($level === 'amber') {
-        return 'risk-amber';
+    } elseif ($level === 'Broken Link') {
+        return 'risk-Grey';
     } elseif ($level === 'green') {
         return 'risk-green';
     } else {
@@ -80,8 +80,12 @@ function getRiskClass($risk_level) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="search-toggle.js"></script>
+    <script src="download_pdf.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <title><?php echo htmlspecialchars($page_title); ?></title>
     <style>
         body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
@@ -93,7 +97,7 @@ function getRiskClass($risk_level) {
         td a { color: #0066cc; text-decoration: none; word-break: break-all; }
         td a:hover { text-decoration: underline; }
         .risk-red { color: #d9534f; font-weight: bold; }
-        .risk-amber { color: #f0ad4e; font-weight: bold; }
+        .risk-Grey { color: rgb(176, 176, 176); font-weight: bold; }
         .risk-green { color: #5cb85c; }
         .risk-unknown {color:rgb(56, 133, 206); }
         .error-message { color: red; font-weight: bold; border: 1px solid red; padding: 10px; background-color: #fdd; margin-bottom: 20px; }
@@ -132,18 +136,33 @@ function getRiskClass($risk_level) {
         .unknown {
             background-color: #5b9bd5; 
         }
+        .th-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .sort-icon {
+            width: 20px;
+            height: 20px;
+            margin-left: 8px;
+            opacity: 0.7;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <h1><?php echo htmlspecialchars($page_title); ?></h1>
-    <p class="info">Report for Moodle Course: <?php echo $course_url; ?></p>
+    <button id="download-btn" style="margin-top: 3px; padding: 5px 12px; font-size: 1em; cursor: pointer;">
+            Download PDF
+    </button>
+    <p class="info">Report for Moodle Course: <?php echo $course_url; ?>
     <?php if (!empty($results)): ?>
     <?php 
         
             $coordinatorName = htmlspecialchars($results[0]['CoordinatorName'] ?? 'N/A');
             $coordinatorEmail = htmlspecialchars($results[0]['CoordinatorEmail'] ?? 'N/A');
         ?>
-        <p class="info">
+        <p class="info" id="coordinator-info">
             Coordinator: <?php echo $coordinatorName; ?><br>
             Email: <a href="mailto:<?php echo $coordinatorEmail; ?>"><?php echo $coordinatorEmail; ?></a>
         </p>
@@ -153,11 +172,17 @@ function getRiskClass($risk_level) {
     <?php elseif (empty($results)): ?>
         <p class="no-results">No analysis results found in the database.</p>
     <?php else: ?>
+        <input type="text" id="table-search-input" style="display:none; margin-top:10px; width: 100%; padding: 8px;" placeholder="Search table...">
         <table>
             <thead>
                 <tr>
                     <?php foreach ($columns as $col): ?>
-                        <th><?php echo htmlspecialchars($col); ?></th>
+                        <th>
+                            <div class="th-content">
+                                <span class="header-text"><?php echo htmlspecialchars($col); ?></span>
+                                <img src="sort.png" alt="Sort" class="sort-icon" data-column="<?php echo htmlspecialchars($col); ?>">
+                            </div>
+                        </th>
                     <?php endforeach; ?>
                 </tr>
             </thead>
@@ -208,3 +233,6 @@ function getRiskClass($risk_level) {
     </div>
 </body>
 </html>
+<script>
+document.getElementById('download-btn').addEventListener('click', downloadPage);
+</script>

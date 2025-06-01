@@ -86,17 +86,16 @@ if __name__ == "__main__":
                         )
                         if scraping_successful:
                             dl_success, dl_fail, processed_files_data = download_discovered_files(
-                            script_data, REQUEST_DELAY, row[0]
-                        )
+                            script_data, REQUEST_DELAY, row[0])
 
-                        if processed_files_data:
-                         process_downloaded_content(script_data, processed_files_data)
-                        else:
-                            if dl_success == 0 and dl_fail == 0:
-                                pass
+                            if processed_files_data:
+                                process_downloaded_content(script_data, processed_files_data)
                             else:
-                                print("\nNo files were successfully processed.")
-                        
+                                if dl_success == 0 and dl_fail == 0:
+                                    pass
+                                else:
+                                    print("\nNo files were successfully processed.")
+                            
                         check_url(script_data,row[0])
 
                         print("\nDownload Summary")

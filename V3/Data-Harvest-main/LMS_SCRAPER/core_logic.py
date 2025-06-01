@@ -551,8 +551,15 @@ def check_url(data,unit_id):
             print(f"  VT Result: Category={risk_level_category} (M:{malicious}, S:{suspicious})")
             analysis_success_count += 1
         elif vt_status == 'not_found':
-            risk_level_category = "Not Found"
+            #check_url_reachability sending session
+            is_reachable = check_url_reachability(url_string)
+            if not is_reachable:
+                print("  Status Check: URL is unreachable or broken.")
+                risk_level_category = "Broken Link"
+            else:
+                risk_level_category = "Not Found"
             print(f"  VT Result: {vt_message}")
+
             analysis_skipped_count += 1
         else:  # vt_status == 'error'
             risk_level_category = "VT Error"  # More specific error type
@@ -598,6 +605,17 @@ def check_url(data,unit_id):
     print(f" Successfully Analyzed/Updated: {analysis_success_count}")
     print(f" Not Found / Skipped by VT: {analysis_skipped_count}")
 
+
+def check_url_reachability(url):
+    try:
+        with requests.Session() as session:
+            response = session.head(url, allow_redirects=True, timeout=5)
+            if response.status_code < 400:
+                return True
+            else:
+                return False
+    except requests.RequestException:
+        return False
 
 def delete_processed_files(processed_files_data): #delets files after processing
     if not processed_files_data:
