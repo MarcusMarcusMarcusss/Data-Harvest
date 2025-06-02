@@ -51,7 +51,7 @@ except ImportError as e:
 
 try:
     from URLCHECKER.URL_Checker import check_url_virustotal, get_api_delay, \
-        get_domain_creation_date  # <-- ADDED get_domain_creation_date
+        get_domain_creation_date  
 except ImportError as e:
     print(f"ERROR in core_logic.py: Could not import VirusTotal/Domain functions: {e}")
     print("Ensure URL_Checker.py exists in a 'URLCHECKER' directory and has necessary functions.")
@@ -554,7 +554,7 @@ def check_url(data,unit_id):
             risk_level_category = "Not Found"
             print(f"  VT Result: {vt_message}")
             analysis_skipped_count += 1
-        else:  # vt_status == 'error'
+        else:  
             risk_level_category = "VT Error"  # More specific error type
             print(f"  VT Result: {vt_status} - {vt_message}")
             analysis_fail_count += 1
@@ -563,12 +563,12 @@ def check_url(data,unit_id):
                 break
 
         # 2. Get Domain Creation Date
-        domain_creation_date = get_domain_creation_date(url_string)  # Call new function
+        domain_creation_date = get_domain_creation_date(url_string)  
         if domain_creation_date:
             print(f"  Domain Creation Date: {domain_creation_date}")
         else:
             print(f"  Domain Creation Date: Not found or error.")
-            domain_creation_date = None  # Ensure it's None for DB if not found
+            domain_creation_date = None  
 
         #UPSERT into AnalysisReport table
         try:
