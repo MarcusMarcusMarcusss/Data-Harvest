@@ -29,7 +29,6 @@ except ImportError:
     sys.exit(1)
 BASE_URL = "http://localhost"
 LOGIN_URL = f"{BASE_URL}/login/index.php"
-#https://moodleprod.murdoch.edu.au/course/index.php?categoryid=202&browse=courses&perpage=all&page=1#
 COURSE_All_COURSE= f"{BASE_URL}/course/index.php"
 COURSE_URL = f"{BASE_URL}/course/view.php?id=2"
 USERNAME = "Admin"
