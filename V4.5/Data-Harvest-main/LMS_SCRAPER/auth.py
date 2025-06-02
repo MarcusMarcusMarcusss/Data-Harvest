@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-## SAUGAT 
+
 
 def login_to_moodle(session, login_url, username, password):
     login_page_res = session.get(login_url, timeout=15)
