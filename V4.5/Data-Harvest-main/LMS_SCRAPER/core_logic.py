@@ -51,7 +51,7 @@ except ImportError as e:
 
 try:
     from URLCHECKER.URL_Checker import check_url_virustotal, get_api_delay, \
-        get_domain_creation_date 
+        get_domain_creation_date  # <-- ADDED get_domain_creation_date
 except ImportError as e:
     print(f"ERROR in core_logic.py: Could not import VirusTotal/Domain functions: {e}")
     print("Ensure URL_Checker.py exists in a 'URLCHECKER' directory and has necessary functions.")
@@ -314,8 +314,8 @@ def scrape_course_content(data, base_url, course_url, request_delay, request_tim
                 potential_files_to_process[link] = {'source_item_id': None, 'file_item_name': 'Unknown File',
                                                     'file_item_type': 'File'}
         # lists of all resources
-        url_resources = extract_url_type_links(main_div, base_url) # type of resource defined as "URL Link" resource in moodle (users are able to just post a link under a content by specifiying as a URL)
-        page_resource_links = extract_page_links(main_div, base_url) 
+        url_resources = extract_url_type_links(main_div, base_url)
+        page_resource_links = extract_page_links(main_div, base_url)
         forum_resource_links = extract_forum_links(main_div, base_url)
         file_resource_links = extract_file_links(main_div, base_url,session)
         for name, file_res_url in file_resource_links:
@@ -330,7 +330,7 @@ def scrape_course_content(data, base_url, course_url, request_delay, request_tim
             
         if url_resources:
             for name, url_res_page_url in url_resources:
-                abs_url_res_page_url = urljoin(base_url, url_res_page_url) # skips if already processed
+                abs_url_res_page_url = urljoin(base_url, url_res_page_url)
                 if abs_url_res_page_url in processed_resource_urls: continue
                 processed_resource_urls.add(abs_url_res_page_url)
                 url_item_id = get_or_create_content_item(db_cursor, moodle_item_cache, name, 'URL',
@@ -347,15 +347,15 @@ def scrape_course_content(data, base_url, course_url, request_delay, request_tim
                             insert_extracted_url(db_cursor, url_item_id, target_url, abs_url_res_page_url)
         if page_resource_links:
             for page_url in page_resource_links:
-                abs_page_url = urljoin(base_url, page_url) # constructing absolute url
+                abs_page_url = urljoin(base_url, page_url)
                 if abs_page_url in processed_resource_urls: continue
                 processed_resource_urls.add(abs_page_url)
                 page_item_id = get_or_create_content_item(db_cursor, moodle_item_cache,
                                                           f"Page Resource {abs_page_url.split('id=')[-1]}", 'Page',
-                                                          abs_page_url, default_unit_id) #retrivies item location for item table for the page 
+                                                          abs_page_url, default_unit_id)
                 if not page_item_id: continue
                 time.sleep(request_delay)
-                ext_links_dict, file_links_dict = extract_links_from_page(abs_page_url, session) # visits the page and extracts links in it
+                ext_links_dict, file_links_dict = extract_links_from_page(abs_page_url, session)
                 for link, _ in ext_links_dict.items():
                     insert_extracted_url(db_cursor, page_item_id, link, abs_page_url)
                 for link, _ in file_links_dict.items():
@@ -364,20 +364,20 @@ def scrape_course_content(data, base_url, course_url, request_delay, request_tim
                                                             'file_item_name': 'Unknown File', 'file_item_type': 'File'}
         if forum_resource_links:
             for forum_name, forum_url in forum_resource_links:
-                abs_forum_url = urljoin(base_url, forum_url) 
+                abs_forum_url = urljoin(base_url, forum_url)
                 if abs_forum_url in processed_resource_urls: continue
                 processed_resource_urls.add(abs_forum_url)
                 time.sleep(request_delay)
-                discussions = extract_forum_discussions(abs_forum_url, session) # calls a function to extract discussin board link and their titles
+                discussions = extract_forum_discussions(abs_forum_url, session)
                 for disc_title, disc_url in discussions:
                     abs_disc_url = urljoin(abs_forum_url, disc_url)
                     if abs_disc_url in processed_resource_urls: continue
                     processed_resource_urls.add(abs_disc_url)
                     disc_item_id = get_or_create_content_item(db_cursor, moodle_item_cache, disc_title, 'Discussion',
-                                                              abs_disc_url, default_unit_id) # populates the content item table for discssion
+                                                              abs_disc_url, default_unit_id)
                     if not disc_item_id: continue
                     time.sleep(request_delay)
-                    ext_links_dict, file_links_dict = extract_links_from_discussion(abs_disc_url, session, disc_title) 
+                    ext_links_dict, file_links_dict = extract_links_from_discussion(abs_disc_url, session, disc_title)
                     for link, _ in ext_links_dict.items():
                         insert_extracted_url(db_cursor, disc_item_id, link, abs_disc_url)
                     for link, _ in file_links_dict.items():
@@ -419,13 +419,13 @@ def download_discovered_files(data, request_delay, default_unit_id):
                 continue
             preferred_name = file_item_name if file_item_name != 'Unknown File' else "downloaded_file"
 
-
+            # download_file now returns a dictionary or None
             download_result = download_file(session, file_link, course_download_dir, fallback_name=preferred_name)
 
             if download_result and download_result.get('local_path'):
                 download_success_count += 1
                 local_path = download_result['local_path']
-                file_hash = download_result.get('file_hash')  
+                file_hash = download_result.get('file_hash')  # Get hash from result
                 item_name_for_db = os.path.basename(local_path)
 
                 file_item_id = get_or_create_content_item(
@@ -435,7 +435,7 @@ def download_discovered_files(data, request_delay, default_unit_id):
                     item_path=file_link,
                     unit_id=default_unit_id,
                     local_path=local_path,
-                    file_hash=file_hash  
+                    file_hash=file_hash  # Pass hash to DB function
                 )
                 if file_item_id:
                     processed_files_report_data.append({
@@ -443,7 +443,7 @@ def download_discovered_files(data, request_delay, default_unit_id):
                         'source_item_id': source_item_id_where_found,
                         'file_item_id': file_item_id,
                         'local_path': local_path,
-                        'file_hash': file_hash  
+                        'file_hash': file_hash  # Store hash for later use if needed
                     })
             else:
                 download_fail_count += 1
@@ -693,17 +693,34 @@ def delete_unit_content(unit_id, db_path='mega_scrape.db'):
                 "DELETE FROM ExtractedURL WHERE ItemID = ?",
                 [(item_id,) for item_id in item_ids]
             )
-            print(f"Deleted {cursor.rowcount} rows from ExtractedURL.")
+            # print(f"Deleted {cursor.rowcount} rows from ExtractedURL.")
 
             cursor.executemany(
                 "DELETE FROM ContentItem WHERE ItemID = ?",
                 [(item_id,) for item_id in item_ids]
             )
-            print(f"Deleted {cursor.rowcount} rows from ContentItem.")
-        else:
-            print(f"No deletable content items found for UnitID {unit_id}.")
+            # print(f"Deleted {cursor.rowcount} rows from ContentItem.")
 
         conn.commit()
         conn.close()
     except sqlite3.Error as e:
         print(f"Database error: {e}")
+
+
+
+def fetch_courses_from_db(db_path,user_id):
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT courses FROM Schedule WHERE user_id = ?", (user_id,))
+        row = cursor.fetchone()
+        if row:
+            return row[0]
+        else:
+            print(f"No courses found for user_id: {user_id}")
+            sys.exit(1)
+    except Exception as e:
+        print(f"Database error: {e}")
+        sys.exit(1)
+    finally:
+        conn.close()
