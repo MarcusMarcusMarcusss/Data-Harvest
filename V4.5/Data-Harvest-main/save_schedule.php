@@ -33,6 +33,40 @@ try {
         ':time'    => $data['time']
     ]);
 
+    $taskName = "MoodleAutoScrape";
+    $pythonExe = "C:/Users/xiema/AppData/Local/Programs/Python/Python310/python.exe"; 
+    $pythonScript = "u:/ICT302/Project dev/Code/V4/Data-Harvest-main/LMS_SCRAPER/AutoScan.py";
+
+    $userId = $_SESSION['user_id'];
+
+    $dayMap = [
+        "Sunday"    => "SUN",
+        "Monday"    => "MON",
+        "Tuesday"   => "TUE",
+        "Wednesday" => "WED",
+        "Thursday"  => "THU",
+        "Friday"    => "FRI",
+        "Saturday"  => "SAT"
+    ];
+    $shortDays = array_map(function($day) use ($dayMap) {
+        return $dayMap[$day] ?? $day;
+    }, $data['days']);
+    $daysStr = implode(",", $shortDays);
+    $time = $data['time'];
+    $argumentas = ["ICT302","ICT303"];
+    $jsonArgsss = json_encode($argumentas); 
+    $command = "schtasks /Create /TN \"$taskName\" /TR \"\\\"$pythonExe\\\" \\\"$pythonScript\\\" $userId\" /SC WEEKLY /D $daysStr /ST $time /F";
+    
+    exec($command, $output, $returnCode);
+
+    $debugCmd = "cmd /k \"\"$pythonExe\" \"$pythonScript\" $userId\"";
+    exec("start \"\" $debugCmd");
+
+    if ($returnCode !== 0) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Failed to schedule task', 'details' => $output]);
+        exit;
+    }
     echo json_encode(['success' => true]);
 } catch (Exception $e) {
     http_response_code(500);
