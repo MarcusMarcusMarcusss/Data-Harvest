@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const rows = Array.from(tableBody.querySelectorAll('tr'));
 
         if (columnName === 'Risk Level') {
-            const riskOrderAsc = ['Broken Link', 'Not Found', 'Green', 'Red'];
+            const riskOrderAsc = ['Broken Link', 'Not Found', 'Low Risk', 'High Risk'];
             const riskOrderDesc = [...riskOrderAsc].reverse();
 
             const order = ascending ? riskOrderAsc : riskOrderDesc;
