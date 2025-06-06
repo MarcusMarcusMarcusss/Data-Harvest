@@ -1,8 +1,0 @@
-requests         
-beautifulsoup4     
-python-dotenv     
-PyMuPDF          
-python-docx      
-openpyxl          
-python-pptx       
-python-whois  
